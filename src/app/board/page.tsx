@@ -6,12 +6,12 @@ import { Empty, Loading, PageHeader } from "@/components/ui";
 import { formatDate } from "@/lib/format";
 import { listPosts } from "@/lib/queries";
 
-export const metadata: Metadata = { title: "게시판" };
+export const metadata: Metadata = { title: "국민참여 게시판" };
 
 export default function BoardPage(props: PageProps<"/board">) {
   return (
     <>
-      <PageHeader title="게시판" description="자유롭게 글을 남겨주세요." />
+      <PageHeader title="국민참여 게시판" description="자유롭게 의견을 남겨주세요." />
       <Suspense fallback={<Loading />}>
         <BoardList searchParams={props.searchParams} />
       </Suspense>

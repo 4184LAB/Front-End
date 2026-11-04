@@ -12,7 +12,7 @@ import {
   type CityKey,
 } from "@/lib/external";
 
-export const metadata: Metadata = { title: "외부 자료" };
+export const metadata: Metadata = { title: "국방 자료실" };
 
 type SP = PageProps<"/external">["searchParams"];
 
@@ -29,7 +29,7 @@ export default function ExternalPage(props: PageProps<"/external">) {
   return (
     <>
       <PageHeader
-        title="외부 자료"
+        title="국방 자료실"
         description="공개 API에서 실시간 데이터를 가져와 보여줍니다. 응답은 잠시 캐시됩니다."
       />
       <div className="grid gap-6 lg:grid-cols-2">

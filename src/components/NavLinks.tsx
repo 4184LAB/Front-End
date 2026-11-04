@@ -7,19 +7,20 @@ type Item = { href: string; title: string };
 
 export function NavList({ items, pathname }: { items: Item[]; pathname?: string }) {
   return (
-    <nav className="order-last w-full overflow-x-auto sm:order-none sm:w-auto">
-      <ul className="flex gap-5 text-sm whitespace-nowrap">
+    <nav className="sticky top-0 z-10 border-b border-white/15 bg-navy text-white">
+      <ul className="mx-auto flex max-w-6xl gap-8 overflow-x-auto px-6 whitespace-nowrap">
         {items.map((item) => {
           const active = pathname?.startsWith(item.href);
           return (
             <li key={item.href}>
               <Link
                 href={item.href}
-                className={
+                aria-current={active ? "page" : undefined}
+                className={`block border-b-[3px] py-3.5 font-medium transition-colors ${
                   active
-                    ? "font-medium text-foreground"
-                    : "text-muted transition-colors hover:text-foreground"
-                }
+                    ? "border-gold"
+                    : "border-transparent text-white/85 hover:border-gold/60 hover:text-white"
+                }`}
               >
                 {item.title}
               </Link>

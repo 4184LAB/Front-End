@@ -1,8 +1,26 @@
 import Link from "next/link";
 
+// 크립토스 공화국 국방부 상징. 이 사이트를 위해 새로 그린 가상 엠블럼입니다.
+export function Emblem({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 64 72" className={className} aria-hidden="true">
+      <path
+        d="M32 3 59 12V34C59 52 47 63 32 69 17 63 5 52 5 34V12Z"
+        fill="var(--navy)"
+        stroke="var(--gold)"
+        strokeWidth="3"
+      />
+      <g fill="none" stroke="var(--gold)" strokeWidth="4" strokeLinecap="round">
+        <circle cx="32" cy="25" r="9" />
+        <path d="M32 34V57M32 47H41M32 55H39" />
+      </g>
+    </svg>
+  );
+}
+
 export function PageHeader({ title, description }: { title: string; description?: string }) {
   return (
-    <div className="mb-10">
+    <div className="mb-10 border-b-2 border-primary pb-5">
       <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
       {description && <p className="mt-2 text-muted">{description}</p>}
     </div>
@@ -21,7 +39,7 @@ export function Card({
   className?: string;
 }) {
   return (
-    <section className={`rounded-xl border border-line p-5 ${className}`}>
+    <section className={`rounded-md border border-line p-5 ${className}`}>
       {(title || action) && (
         <div className="mb-4 flex items-center justify-between gap-4">
           {title && <h2 className="font-semibold">{title}</h2>}
@@ -71,7 +89,7 @@ export function Notice({
   linkLabel?: string;
 }) {
   return (
-    <div className="rounded-xl border border-line px-6 py-12 text-center">
+    <div className="rounded-md border border-line px-6 py-12 text-center">
       <h2 className="text-lg font-semibold">{title}</h2>
       {children && <p className="mt-2 text-sm text-muted">{children}</p>}
       {href && (

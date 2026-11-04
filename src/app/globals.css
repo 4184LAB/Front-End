@@ -2,13 +2,17 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --surface: #f3f4f6;
-  --accent: #2563eb;
+  --foreground: #1a2233;
+  --muted: #5b6575;
+  --line: #d9dee7;
+  --surface: #f2f5f9;
+  --accent: #1c4f96;
+  --primary: #12305c;
   --danger: #dc2626;
   --success: #16a34a;
+  --navy: #12305c;
+  --navy-deep: #0b1f3d;
+  --gold: #c9a24b;
 }
 
 @theme inline {
@@ -18,6 +22,10 @@
   --color-line: var(--line);
   --color-surface: var(--surface);
   --color-accent: var(--accent);
+  --color-primary: var(--primary);
+  --color-navy: var(--navy);
+  --color-navy-deep: var(--navy-deep);
+  --color-gold: var(--gold);
   --color-danger: var(--danger);
   --color-success: var(--success);
   --font-sans: var(--font-geist-sans), var(--font-noto-sans-kr), sans-serif;
@@ -26,12 +34,13 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-    --muted: #9ca3af;
-    --line: #262626;
-    --surface: #1c1c1c;
-    --accent: #60a5fa;
+    --background: #0d1420;
+    --foreground: #e6ebf3;
+    --muted: #9aa6b8;
+    --line: #27344a;
+    --surface: #162133;
+    --accent: #7fb0ea;
+    --primary: #2b5a9e;
     --danger: #f87171;
     --success: #4ade80;
   }
@@ -47,12 +56,19 @@ body {
 }
 
 @layer components {
+  /* 본문 폭은 유지한 채 배경색만 화면 양끝까지 넓힙니다. */
+  .band {
+    background: var(--band);
+    box-shadow: 0 0 0 100vmax var(--band);
+    clip-path: inset(0 -100vmax);
+  }
+
   .input {
-    @apply w-full rounded-lg border border-line bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-accent;
+    @apply w-full rounded border border-line bg-background px-3 py-2 text-sm outline-none transition-colors focus:border-accent;
   }
 
   .btn {
-    @apply inline-flex items-center justify-center rounded-lg px-4 py-2 text-sm font-medium whitespace-nowrap transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex items-center justify-center rounded px-4 py-2 text-sm font-medium whitespace-nowrap transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .btn-sm {
@@ -60,7 +76,7 @@ body {
   }
 
   .btn-primary {
-    @apply bg-foreground text-background;
+    @apply bg-primary text-white;
   }
 
   .btn-secondary {
@@ -75,8 +91,12 @@ body {
     @apply w-full text-left text-sm;
   }
 
+  .table thead {
+    @apply border-t-2 border-primary bg-surface;
+  }
+
   .table th {
-    @apply border-b border-line px-3 py-2 font-medium whitespace-nowrap text-muted;
+    @apply border-b border-line px-3 py-2.5 font-medium whitespace-nowrap;
   }
 
   .table td {

@@ -36,7 +36,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col font-sans">
         <Header />
-        <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-12">{children}</main>
+        <main className="mx-auto w-full max-w-6xl flex-1 px-6 py-12">{children}</main>
         <Footer />
       </body>
     </html>

@@ -9,13 +9,13 @@ import { formatBytes, formatDateTime, formatDuration } from "@/lib/format";
 import { getDbCounts } from "@/lib/queries";
 import { getSystemInfo } from "@/lib/system";
 
-export const metadata: Metadata = { title: "시스템 도구" };
+export const metadata: Metadata = { title: "사이버 방위 도구" };
 
 export default function ToolsPage() {
   return (
     <>
       <PageHeader
-        title="시스템 도구"
+        title="사이버 방위 도구"
         description="브라우저에서 바로 쓰는 개발 도구와 서버 상태 점검 도구입니다."
       />
       <div className="space-y-6">

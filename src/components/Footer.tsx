@@ -1,4 +1,5 @@
 import { site } from "@/data/site";
+import { Emblem } from "./ui";
 
 // 빌드 시점의 연도로 프리렌더링되어 캐시됩니다.
 async function CurrentYear() {
@@ -8,14 +9,21 @@ async function CurrentYear() {
 
 export default function Footer() {
   return (
-    <footer className="border-t border-line">
-      <div className="mx-auto flex max-w-5xl flex-col gap-2 px-6 py-8 text-sm text-muted sm:flex-row sm:justify-between">
-        <p>
-          © <CurrentYear /> {site.owner}. All rights reserved.
-        </p>
-        <ul className="flex gap-4">
+    <footer className="bg-navy-deep text-sm text-white/70">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-6 py-10 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex gap-4">
+          <Emblem className="h-12 w-auto shrink-0" />
+          <div className="space-y-1">
+            <p className="font-semibold text-white">{site.name}</p>
+            <p>{site.address}</p>
+            <p>
+              © <CurrentYear /> {site.owner}. All rights reserved.
+            </p>
+          </div>
+        </div>
+        <ul className="flex flex-wrap gap-4">
           <li>
-            <a href={`mailto:${site.email}`} className="hover:text-foreground">
+            <a href={`mailto:${site.email}`} className="hover:text-white">
               {site.email}
             </a>
           </li>
@@ -25,12 +33,17 @@ export default function Footer() {
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:text-foreground"
+                className="hover:text-white"
               >
                 {link.label}
               </a>
             </li>
           ))}
+          <li>
+            <a href="#top" className="hover:text-white">
+              맨위로 ↑
+            </a>
+          </li>
         </ul>
       </div>
     </footer>

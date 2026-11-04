@@ -44,7 +44,7 @@ async function AdminContent() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {statItems.map((item) => (
-          <div key={item.label} className="rounded-xl border border-line p-4">
+          <div key={item.label} className="rounded-md border border-line p-4">
             <p className="text-xs text-muted">{item.label}</p>
             <p className="mt-1 text-2xl font-semibold tabular-nums">{item.value}</p>
           </div>

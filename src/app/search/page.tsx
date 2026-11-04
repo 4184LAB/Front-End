@@ -7,7 +7,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { parseSearchParams, search, type SearchParams } from "@/lib/queries";
 
-export const metadata: Metadata = { title: "검색 · 조회" };
+export const metadata: Metadata = { title: "정보공개 검색" };
 
 const TYPE_LABELS = { posts: "게시글", comments: "댓글", users: "회원 (관리자)" } as const;
 
@@ -15,7 +15,7 @@ export default function SearchPage(props: PageProps<"/search">) {
   return (
     <>
       <PageHeader
-        title="검색 · 데이터 조회"
+        title="정보공개 검색"
         description="조건을 지정해 게시글, 댓글, 회원 데이터를 조회합니다."
       />
       <Suspense fallback={<Loading />}>
@@ -104,7 +104,7 @@ function SearchForm({ params }: { params: SearchParams }) {
   return (
     <Form
       action="/search"
-      className="grid gap-4 rounded-xl border border-line p-5 sm:grid-cols-2 lg:grid-cols-6"
+      className="grid gap-4 rounded-md border border-line p-5 sm:grid-cols-2 lg:grid-cols-6"
     >
       <div className="sm:col-span-2 lg:col-span-2">
         <Field label="검색어">
