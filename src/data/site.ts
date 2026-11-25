@@ -87,9 +87,15 @@ export const sections: Section[] = [
     nav: true,
   },
   {
+    href: "/notices",
+    title: "공지사항",
+    description: "국방부 공지와 첨부 자료를 누구나 볼 수 있습니다.",
+    nav: true,
+  },
+  {
     href: "/board",
     title: "국민참여 게시판",
-    description: "글을 쓰고 댓글로 이야기를 나눌 수 있습니다.",
+    description: "로그인한 회원이 글과 첨부파일을 올리고 댓글로 이야기를 나눕니다.",
     nav: true,
   },
   {

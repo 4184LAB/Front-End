@@ -20,5 +20,5 @@ export default function NewPostPage() {
 
 async function NewPostForm() {
   await requireUser();
-  return <PostForm action={createPost} submitLabel="등록" />;
+  return <PostForm action={createPost.bind(null, "GENERAL")} submitLabel="등록" />;
 }

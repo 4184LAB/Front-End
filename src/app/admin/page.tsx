@@ -37,7 +37,7 @@ async function AdminContent() {
     { label: "전체 게시글", value: stats.posts },
     { label: "전체 댓글", value: stats.comments },
     { label: "오늘 작성된 글", value: stats.postsToday },
-    { label: "활성 세션", value: stats.activeSessions },
+    { label: "공지사항", value: stats.notices },
   ];
 
   return (
@@ -57,7 +57,7 @@ async function AdminContent() {
             <thead>
               <tr>
                 <th>이름</th>
-                <th>이메일</th>
+                <th>아이디</th>
                 <th>권한</th>
                 <th>글</th>
                 <th>가입일</th>
@@ -74,7 +74,7 @@ async function AdminContent() {
                       {user.name}
                       {isMe && <span className="ml-1 text-xs text-muted">(나)</span>}
                     </td>
-                    <td className="text-muted">{user.email}</td>
+                    <td className="text-muted">{user.username}</td>
                     <td>
                       <Badge tone={user.role === "admin" ? "accent" : "default"}>
                         {user.role === "admin" ? "관리자" : "회원"}

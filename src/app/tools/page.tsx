@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { purgeExpiredSessions } from "@/actions/admin";
-import ConfirmButton from "@/components/ConfirmButton";
 import DevTools from "@/components/DevTools";
 import { Card, Loading, PageHeader } from "@/components/ui";
 import { getCurrentUser } from "@/lib/auth";
 import { formatBytes, formatDateTime, formatDuration } from "@/lib/format";
-import { getDbCounts } from "@/lib/queries";
+import { API_BASE_URL, ApiError } from "@/lib/api";
+import { getAdminOverview } from "@/lib/queries";
 import { getSystemInfo } from "@/lib/system";
 
 export const metadata: Metadata = { title: "사이버 방위 도구" };
@@ -66,7 +65,15 @@ async function ServerStatus() {
     );
   }
 
-  const [info, counts] = await Promise.all([getSystemInfo(), getDbCounts()]);
+  const info = await getSystemInfo();
+  // 백엔드 연결 상태와 데이터 건수를 함께 보여 줍니다.
+  const backend = await getAdminOverview().then(
+    (overview) => ({ ok: true as const, stats: overview.stats }),
+    (error: unknown) => {
+      if (error instanceof ApiError) return { ok: false as const, message: error.message };
+      throw error;
+    },
+  );
   const memoryPercent = Math.round(
     ((info.memory.systemTotal - info.memory.systemFree) / info.memory.systemTotal) * 100,
   );
@@ -103,28 +110,30 @@ async function ServerStatus() {
 
       <Card title="데이터 관리">
         <dl className="grid grid-cols-[10rem_1fr] gap-y-2 text-sm">
-          <dt className="text-muted">DB 파일</dt>
-          <dd className="font-mono text-xs break-all">{info.dbPath}</dd>
-          <dt className="text-muted">파일 크기</dt>
-          <dd>{formatBytes(info.dbSize)}</dd>
-          <dt className="text-muted">회원 / 글 / 댓글</dt>
-          <dd>
-            {counts.users} / {counts.posts} / {counts.comments}
+          <dt className="text-muted">백엔드 API</dt>
+          <dd className="font-mono text-xs break-all">{API_BASE_URL}</dd>
+          <dt className="text-muted">연결 상태</dt>
+          <dd className={backend.ok ? "text-success" : "text-danger"}>
+            {backend.ok ? "정상" : backend.message}
           </dd>
-          <dt className="text-muted">세션 (만료됨)</dt>
-          <dd>
-            {counts.sessions} ({counts.expiredSessions})
-          </dd>
+          {backend.ok && (
+            <>
+              <dt className="text-muted">회원 / 글 / 댓글</dt>
+              <dd>
+                {backend.stats.users} / {backend.stats.posts} / {backend.stats.comments}
+              </dd>
+              <dt className="text-muted">공지사항</dt>
+              <dd>{backend.stats.notices}</dd>
+            </>
+          )}
         </dl>
+        <p className="mt-4 text-xs text-muted">
+          로그인은 백엔드 JWT로 처리하며 서버 세션을 따로 저장하지 않습니다.
+        </p>
         <div className="mt-6 flex flex-wrap gap-2">
           <a href="/api/admin/backup" className="btn btn-primary btn-sm">
             DB 백업 다운로드
           </a>
-          <form action={purgeExpiredSessions}>
-            <ConfirmButton message="만료된 세션을 모두 삭제할까요?" className="btn btn-secondary btn-sm">
-              만료 세션 정리
-            </ConfirmButton>
-          </form>
         </div>
       </Card>
     </div>

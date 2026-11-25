@@ -3,7 +3,6 @@ import Form from "next/form";
 import Link from "next/link";
 import { Suspense } from "react";
 import { Empty, Field, Loading, PageHeader } from "@/components/ui";
-import { getCurrentUser } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { parseSearchParams, search, type SearchParams } from "@/lib/queries";
 
@@ -16,7 +15,7 @@ export default function SearchPage(props: PageProps<"/search">) {
     <>
       <PageHeader
         title="정보공개 검색"
-        description="조건을 지정해 게시글, 댓글, 회원 데이터를 조회합니다."
+        description="조건을 지정해 게시글, 댓글, 회원 데이터를 조회합니다. 로그인하지 않으면 공지사항만 검색됩니다."
       />
       <Suspense fallback={<Loading />}>
         <SearchContent searchParams={props.searchParams} />
@@ -31,8 +30,7 @@ async function SearchContent({
   searchParams: PageProps<"/search">["searchParams"];
 }) {
   const params = parseSearchParams(await searchParams);
-  const viewer = await getCurrentUser();
-  const { error, rows } = await search(params, viewer);
+  const { error, rows } = await search(params);
 
   return (
     <>
@@ -64,7 +62,7 @@ async function SearchContent({
             <thead>
               <tr>
                 <th>{params.type === "users" ? "이름" : params.type === "comments" ? "게시글" : "제목"}</th>
-                <th>{params.type === "users" ? "이메일" : "내용"}</th>
+                <th>{params.type === "users" ? "아이디" : "내용"}</th>
                 <th>{params.type === "users" ? "권한" : "작성자"}</th>
                 <th>{params.type === "users" ? "가입일" : "작성일"}</th>
               </tr>

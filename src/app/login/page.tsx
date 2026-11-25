@@ -39,8 +39,8 @@ async function LoginForm({
   return (
     <ActionForm action={login} submitLabel="로그인">
       <input type="hidden" name="next" value={typeof next === "string" ? next : ""} />
-      <Field label="이메일">
-        <input name="email" type="email" required autoComplete="email" className="input" />
+      <Field label="아이디">
+        <input name="username" required maxLength={50} autoComplete="username" className="input" />
       </Field>
       <Field label="비밀번호">
         <input

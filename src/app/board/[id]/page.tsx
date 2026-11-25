@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
-import { addComment, deleteComment, deletePost } from "@/actions/board";
+import { addComment, deleteComment } from "@/actions/board";
 import ActionForm from "@/components/ActionForm";
 import ConfirmButton from "@/components/ConfirmButton";
+import PostView from "@/components/PostView";
 import { Loading } from "@/components/ui";
+import type { PublicUser } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
-import type { PublicUser } from "@/lib/db";
 import { formatDateTime } from "@/lib/format";
-import { getPostDetail } from "@/lib/queries";
+import { getBoardPost, getComments } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "게시글" };
 
@@ -20,59 +21,51 @@ export default function PostPage(props: PageProps<"/board/[id]">) {
         ← 목록으로
       </Link>
       <Suspense fallback={<Loading />}>
-        <PostDetail params={props.params} />
+        <PostDetail params={props.params} searchParams={props.searchParams} />
       </Suspense>
     </>
   );
 }
 
-function canModify(user: PublicUser | null, authorId: string) {
-  return !!user && (user.role === "admin" || user.id === authorId);
+// 백엔드 규칙: 댓글은 작성자와 관리자가 삭제할 수 있습니다.
+function canDeleteComment(user: PublicUser, authorId: string | null) {
+  return user.role === "admin" || (!!authorId && user.id === authorId);
 }
 
-async function PostDetail({ params }: { params: PageProps<"/board/[id]">["params"] }) {
+async function PostDetail({
+  params,
+  searchParams,
+}: {
+  params: PageProps<"/board/[id]">["params"];
+  searchParams: PageProps<"/board/[id]">["searchParams"];
+}) {
   const { id } = await params;
-  const [post, user] = await Promise.all([getPostDetail(Number(id)), getCurrentUser()]);
+  const { upload } = await searchParams;
+
+  // 백엔드에서 일반 게시글은 로그인해야 볼 수 있습니다.
+  const user = await getCurrentUser();
+  if (!user) redirect(`/login?next=/board/${id}`);
+
+  const post = await getBoardPost("GENERAL", Number(id));
   if (!post) notFound();
+  const comments = await getComments(post.id);
 
   return (
     <>
-      <article className="mt-6">
-        <h1 className="text-3xl font-bold tracking-tight">{post.title}</h1>
-        <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
-          <span className="font-medium text-foreground">{post.authorName}</span>
-          <time dateTime={post.createdAt}>{formatDateTime(post.createdAt)}</time>
-          {post.updatedAt !== post.createdAt && <span>(수정됨)</span>}
-          {canModify(user, post.authorId) && (
-            <span className="ml-auto flex gap-2">
-              <Link href={`/board/${post.id}/edit`} className="btn btn-secondary btn-sm">
-                수정
-              </Link>
-              <form action={deletePost.bind(null, post.id)}>
-                <ConfirmButton message="이 글을 삭제할까요? 댓글도 함께 삭제됩니다.">
-                  삭제
-                </ConfirmButton>
-              </form>
-            </span>
-          )}
-        </div>
-        <div className="mt-8 border-t border-line pt-8 leading-relaxed whitespace-pre-wrap">
-          {post.content}
-        </div>
-      </article>
+      <PostView kind="GENERAL" post={post} user={user} uploadFailed={upload === "failed"} />
 
       <section className="mt-12 border-t border-line pt-8">
-        <h2 className="font-semibold">댓글 {post.comments.length}</h2>
+        <h2 className="font-semibold">댓글 {comments.length}</h2>
         <ul className="mt-4 divide-y divide-line">
-          {post.comments.map((comment) => (
+          {comments.map((comment) => (
             <li key={comment.id} className="py-4">
               <div className="flex items-center gap-3 text-sm">
                 <span className="font-medium">{comment.authorName}</span>
                 <time dateTime={comment.createdAt} className="text-muted">
                   {formatDateTime(comment.createdAt)}
                 </time>
-                {canModify(user, comment.authorId) && (
-                  <form action={deleteComment.bind(null, comment.id)} className="ml-auto">
+                {canDeleteComment(user, comment.authorId) && (
+                  <form action={deleteComment.bind(null, post.id, comment.id)} className="ml-auto">
                     <ConfirmButton
                       message="댓글을 삭제할까요?"
                       className="text-xs text-muted hover:text-danger"
@@ -90,32 +83,22 @@ async function PostDetail({ params }: { params: PageProps<"/board/[id]">["params
         </ul>
 
         <div className="mt-6">
-          {user ? (
-            <ActionForm
-              action={addComment.bind(null, post.id)}
-              submitLabel="댓글 등록"
-              resetOnSuccess
-              className="space-y-3"
-            >
-              <textarea
-                name="content"
-                required
-                maxLength={1000}
-                rows={3}
-                placeholder="댓글을 입력하세요"
-                aria-label="댓글"
-                className="input resize-y"
-              />
-            </ActionForm>
-          ) : (
-            <p className="text-sm text-muted">
-              댓글을 쓰려면{" "}
-              <Link href={`/login?next=/board/${post.id}`} className="text-accent hover:underline">
-                로그인
-              </Link>
-              하세요.
-            </p>
-          )}
+          <ActionForm
+            action={addComment.bind(null, post.id)}
+            submitLabel="댓글 등록"
+            resetOnSuccess
+            className="space-y-3"
+          >
+            <textarea
+              name="content"
+              required
+              maxLength={1000}
+              rows={3}
+              placeholder="댓글을 입력하세요"
+              aria-label="댓글"
+              className="input resize-y"
+            />
+          </ActionForm>
         </div>
       </section>
     </>

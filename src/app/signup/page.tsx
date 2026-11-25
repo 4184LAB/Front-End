@@ -33,8 +33,8 @@ async function SignupForm() {
 
   return (
     <ActionForm action={signup} submitLabel="가입하기">
-      <Field label="이메일">
-        <input name="email" type="email" required autoComplete="email" className="input" />
+      <Field label="아이디" hint="50자 이하">
+        <input name="username" required maxLength={50} autoComplete="username" className="input" />
       </Field>
       <Field label="이름" hint="2~20자">
         <input
@@ -52,6 +52,7 @@ async function SignupForm() {
           type="password"
           required
           minLength={8}
+          maxLength={128}
           autoComplete="new-password"
           className="input"
         />

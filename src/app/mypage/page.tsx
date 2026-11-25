@@ -23,14 +23,14 @@ export default function MyPage() {
 
 async function MyPageContent() {
   const user = await requireUser();
-  const activity = await getUserActivity(user.id);
+  const activity = await getUserActivity();
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <Card title="내 정보">
         <dl className="grid grid-cols-[6rem_1fr] gap-y-3 text-sm">
-          <dt className="text-muted">이메일</dt>
-          <dd>{user.email}</dd>
+          <dt className="text-muted">아이디</dt>
+          <dd>{user.username}</dd>
           <dt className="text-muted">이름</dt>
           <dd>{user.name}</dd>
           <dt className="text-muted">권한</dt>

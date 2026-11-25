@@ -1,14 +1,22 @@
 "use server";
 
-import { randomUUID } from "crypto";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
+import { actionError, apiFetch, ApiError, type BoardKind } from "@/lib/api";
 import { getCurrentUser } from "@/lib/auth";
-import { updateDb, type PublicUser } from "@/lib/db";
 import { field, type FormState } from "@/lib/form-state";
 
-function canModify(user: PublicUser, authorId: string) {
-  return user.role === "admin" || user.id === authorId;
+// 권한 판단은 백엔드가 다시 합니다. 여기서는 로그인 여부와 입력값만 먼저 확인합니다.
+
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+const apiPath = (kind: BoardKind) => (kind === "NOTICE" ? "/notices" : "/posts");
+const pagePath = (kind: BoardKind) => (kind === "NOTICE" ? "/notices" : "/board");
+
+async function requireLogin() {
+  const user = await getCurrentUser();
+  if (!user) redirect("/login");
+  return user;
 }
 
 function validatePost(formData: FormData) {
@@ -19,97 +27,137 @@ function validatePost(formData: FormData) {
   return { title, content } as const;
 }
 
-export async function createPost(_: FormState, formData: FormData): Promise<FormState> {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
+function pickFile(formData: FormData) {
+  const file = formData.get("file");
+  return file instanceof File && file.size > 0 ? file : null;
+}
+
+function checkFile(file: File | null) {
+  if (file && file.size > MAX_FILE_BYTES) return "첨부파일은 10MB 이하만 올릴 수 있습니다.";
+  return null;
+}
+
+async function uploadFile(kind: BoardKind, postId: number, file: File) {
+  const form = new FormData();
+  form.append("file", file, file.name);
+  await apiFetch(`${apiPath(kind)}/${postId}/files`, { method: "POST", form });
+}
+
+export async function createPost(kind: BoardKind, _: FormState, formData: FormData): Promise<FormState> {
+  await requireLogin();
 
   const input = validatePost(formData);
   if ("error" in input) return input;
+  const file = pickFile(formData);
+  const fileError = checkFile(file);
+  if (fileError) return { error: fileError };
 
-  const id = await updateDb((data) => {
-    const now = new Date().toISOString();
-    const nextId = data.posts.reduce((max, p) => Math.max(max, p.id), 0) + 1;
-    data.posts.push({ id: nextId, ...input, authorId: user.id, createdAt: now, updatedAt: now });
-    return nextId;
-  });
+  let id: number;
+  try {
+    ({ id } = await apiFetch<{ id: number }>(apiPath(kind), { method: "POST", json: input }));
+  } catch (error) {
+    return actionError(error);
+  }
 
-  redirect(`/board/${id}`);
+  let uploadFailed = false;
+  if (file) {
+    // 글은 이미 등록됐으므로 업로드가 실패해도 글 화면으로 이동해 알려 줍니다.
+    uploadFailed = await uploadFile(kind, id, file).then(
+      () => false,
+      () => true,
+    );
+  }
+
+  redirect(`${pagePath(kind)}/${id}${uploadFailed ? "?upload=failed" : ""}`);
 }
 
 export async function updatePost(
+  kind: BoardKind,
   postId: number,
   _: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  await requireLogin();
 
   const input = validatePost(formData);
   if ("error" in input) return input;
+  const file = pickFile(formData);
+  const fileError = checkFile(file);
+  if (fileError) return { error: fileError };
 
-  const error = await updateDb((data) => {
-    const post = data.posts.find((p) => p.id === postId);
-    if (!post) return "글을 찾을 수 없습니다.";
-    if (!canModify(user, post.authorId)) return "수정 권한이 없습니다.";
-    Object.assign(post, input, { updatedAt: new Date().toISOString() });
-    return null;
-  });
-  if (error) return { error };
+  try {
+    await apiFetch(`${apiPath(kind)}/${postId}`, { method: "PATCH", json: input });
+    if (file) await uploadFile(kind, postId, file);
+  } catch (error) {
+    return actionError(error);
+  }
 
-  redirect(`/board/${postId}`);
+  redirect(`${pagePath(kind)}/${postId}`);
 }
 
-export async function deletePost(postId: number) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
+export async function deletePost(kind: BoardKind, postId: number) {
+  const user = await requireLogin();
 
-  await updateDb((data) => {
-    const post = data.posts.find((p) => p.id === postId);
-    if (!post || !canModify(user, post.authorId)) return;
-    data.posts = data.posts.filter((p) => p.id !== postId);
-    data.comments = data.comments.filter((c) => c.postId !== postId);
-  });
+  // 관리자는 남의 일반 게시글도 관리자 API로 삭제합니다.
+  const path =
+    kind === "GENERAL" && user.role === "admin" ? `/admin/posts/${postId}` : `${apiPath(kind)}/${postId}`;
+  try {
+    await apiFetch(path, { method: "DELETE" });
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status === 503) throw error;
+    // 이미 삭제됐거나 권한이 없으면 목록으로 돌아갑니다.
+  }
 
-  redirect("/board");
+  redirect(pagePath(kind));
 }
 
-export async function addComment(
+export async function uploadAttachment(
+  kind: BoardKind,
   postId: number,
   _: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
+  await requireLogin();
+
+  const file = pickFile(formData);
+  if (!file) return { error: "파일을 선택하세요." };
+  const fileError = checkFile(file);
+  if (fileError) return { error: fileError };
+
+  try {
+    await uploadFile(kind, postId, file);
+  } catch (error) {
+    return actionError(error);
+  }
+
+  refresh();
+  return { ok: true, message: "첨부파일을 올렸습니다." };
+}
+
+export async function addComment(postId: number, _: FormState, formData: FormData): Promise<FormState> {
+  await requireLogin();
 
   const content = field(formData, "content");
   if (!content || content.length > 1000) return { error: "댓글은 1~1000자로 입력하세요." };
 
-  const ok = await updateDb((data) => {
-    if (!data.posts.some((p) => p.id === postId)) return false;
-    data.comments.push({
-      id: randomUUID(),
-      postId,
-      authorId: user.id,
-      content,
-      createdAt: new Date().toISOString(),
-    });
-    return true;
-  });
-  if (!ok) return { error: "글을 찾을 수 없습니다." };
+  try {
+    await apiFetch(`/posts/${postId}/comments`, { method: "POST", json: { content } });
+  } catch (error) {
+    return actionError(error);
+  }
 
   refresh();
   return { ok: true };
 }
 
-export async function deleteComment(commentId: string) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/login");
+export async function deleteComment(postId: number, commentId: number) {
+  await requireLogin();
 
-  await updateDb((data) => {
-    const comment = data.comments.find((c) => c.id === commentId);
-    if (!comment || !canModify(user, comment.authorId)) return;
-    data.comments = data.comments.filter((c) => c.id !== commentId);
-  });
+  try {
+    await apiFetch(`/posts/${postId}/comments/${commentId}`, { method: "DELETE" });
+  } catch (error) {
+    if (!(error instanceof ApiError) || error.status === 503) throw error;
+  }
 
   refresh();
 }

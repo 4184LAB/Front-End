@@ -1,18 +1,18 @@
-import { getCurrentUser } from "@/lib/auth";
-import { readDb } from "@/lib/db";
+import { apiFetch, ApiError } from "@/lib/api";
 
-// 관리자만 전체 데이터베이스를 JSON 파일로 내려받을 수 있습니다.
-// 비밀번호는 해시로만 저장되어 있지만, 세션 토큰은 백업에서 제외합니다.
+// 관리자만 백엔드 DB 전체(비밀번호 제외)를 JSON 파일로 내려받습니다. 권한은 백엔드가 확인합니다.
 export async function GET() {
-  const user = await getCurrentUser();
-  if (user?.role !== "admin") {
-    return Response.json({ error: "관리자 권한이 필요합니다." }, { status: 403 });
+  let data: unknown;
+  try {
+    data = await apiFetch("/admin/backup");
+  } catch (error) {
+    if (error instanceof ApiError) {
+      return Response.json({ error: error.message }, { status: error.status });
+    }
+    throw error;
   }
 
-  const { users, posts, comments } = await readDb();
-  const data = { users, posts, comments };
   const date = new Date().toISOString().slice(0, 10);
-
   return new Response(JSON.stringify(data, null, 2), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",

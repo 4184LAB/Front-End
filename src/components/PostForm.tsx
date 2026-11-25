@@ -32,6 +32,9 @@ export default function PostForm({
           className="input resize-y leading-relaxed"
         />
       </Field>
+      <Field label="첨부파일 (선택)" hint="10MB 이하 파일 1개. 글 화면에서 더 추가할 수 있습니다.">
+        <input name="file" type="file" className="input" />
+      </Field>
     </ActionForm>
   );
 }

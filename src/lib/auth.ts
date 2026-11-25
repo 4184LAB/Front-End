@@ -1,54 +1,51 @@
 import "server-only";
-import { randomBytes } from "crypto";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { readDb, toPublicUser, updateDb, type PublicUser } from "./db";
+import {
+  apiFetch,
+  ApiError,
+  SESSION_COOKIE,
+  toPublicUser,
+  type BackendUser,
+  type PublicUser,
+} from "./api";
 
-const COOKIE_NAME = "session";
-const MAX_AGE_SECONDS = 60 * 60 * 24 * 7; // 7일
+// 쿠키는 7일 동안 유지하고, 그 안의 JWT가 만료되면 src/proxy.ts가 재발급합니다.
+export const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 
-export async function createSession(userId: string) {
-  const token = randomBytes(32).toString("base64url");
-  const now = Date.now();
-  const expiresAt = new Date(now + MAX_AGE_SECONDS * 1000).toISOString();
+export const sessionCookieOptions = {
+  httpOnly: true,
+  sameSite: "lax",
+  secure: process.env.NODE_ENV === "production",
+  path: "/",
+  maxAge: SESSION_MAX_AGE_SECONDS,
+} as const;
 
-  await updateDb((data) => {
-    data.sessions = data.sessions.filter((s) => Date.parse(s.expiresAt) > now);
-    data.sessions.push({ token, userId, expiresAt });
-  });
-
-  (await cookies()).set(COOKIE_NAME, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: MAX_AGE_SECONDS,
-  });
+export async function createSession(accessToken: string) {
+  (await cookies()).set(SESSION_COOKIE, accessToken, sessionCookieOptions);
 }
 
 export async function deleteSession() {
   const store = await cookies();
-  const token = store.get(COOKIE_NAME)?.value;
-  if (token) {
-    await updateDb((data) => {
-      data.sessions = data.sessions.filter((s) => s.token !== token);
-    });
+  if (store.get(SESSION_COOKIE)) {
+    // 백엔드는 토큰을 폐기하지 않지만 API 흐름을 맞추기 위해 호출합니다.
+    await apiFetch("/auth/logout", { method: "POST" }).catch(() => undefined);
   }
-  store.delete(COOKIE_NAME);
+  store.delete(SESSION_COOKIE);
 }
 
-// 한 요청 안에서는 세션을 한 번만 읽도록 React cache로 감쌉니다.
+// 한 요청 안에서는 백엔드에 한 번만 묻도록 React cache로 감쌉니다.
 export const getCurrentUser = cache(async (): Promise<PublicUser | null> => {
-  const token = (await cookies()).get(COOKIE_NAME)?.value;
-  if (!token) return null;
+  if (!(await cookies()).get(SESSION_COOKIE)?.value) return null;
 
-  const data = await readDb();
-  const session = data.sessions.find((s) => s.token === token);
-  if (!session || Date.parse(session.expiresAt) <= Date.now()) return null;
-
-  const user = data.users.find((u) => u.id === session.userId);
-  return user ? toPublicUser(user) : null;
+  try {
+    return toPublicUser(await apiFetch<BackendUser>("/users/me"));
+  } catch (error) {
+    // 토큰이 만료·위조됐거나 백엔드에 연결할 수 없으면 비로그인으로 취급합니다.
+    if (error instanceof ApiError) return null;
+    throw error;
+  }
 });
 
 export async function requireUser(): Promise<PublicUser> {

@@ -5,7 +5,8 @@ import HeroSlider from "@/components/HeroSlider";
 import { Empty, Loading } from "@/components/ui";
 import { sections } from "@/data/site";
 import { formatDate } from "@/lib/format";
-import { listPosts } from "@/lib/queries";
+import { ApiError } from "@/lib/api";
+import { listBoard } from "@/lib/queries";
 
 const quickLinks = [
   { href: "/signup", label: "회원가입" },
@@ -22,13 +23,13 @@ export default function Home() {
       <div className="mt-12 grid gap-8 lg:grid-cols-3">
         <section className="lg:col-span-2">
           <div className="flex items-center justify-between border-b-2 border-primary pb-3">
-            <h2 className="text-xl font-bold">국방소식</h2>
-            <Link href="/board" className="text-sm text-muted hover:text-accent">
+            <h2 className="text-xl font-bold">공지사항</h2>
+            <Link href="/notices" className="text-sm text-muted hover:text-accent">
               더보기 +
             </Link>
           </div>
           <Suspense fallback={<Loading />}>
-            <LatestPosts />
+            <LatestNotices />
           </Suspense>
         </section>
 
@@ -68,18 +69,24 @@ export default function Home() {
   );
 }
 
-// 새 글이 바로 보이도록 요청 시점에 읽습니다.
-async function LatestPosts() {
+// 새 공지가 바로 보이도록 요청 시점에 백엔드에서 읽습니다. (공지는 로그인 없이 볼 수 있음)
+async function LatestNotices() {
   await connection();
-  const { items } = await listPosts({});
+  let items;
+  try {
+    ({ items } = await listBoard("NOTICE", {}));
+  } catch (error) {
+    if (error instanceof ApiError) return <Empty>{error.message}</Empty>;
+    throw error;
+  }
 
-  if (items.length === 0) return <Empty>게시글이 없습니다.</Empty>;
+  if (items.length === 0) return <Empty>공지사항이 없습니다.</Empty>;
 
   return (
     <ul>
       {items.slice(0, 5).map((post) => (
         <li key={post.id} className="flex justify-between gap-4 border-b border-line py-3 text-sm">
-          <Link href={`/board/${post.id}`} className="truncate hover:text-accent">
+          <Link href={`/notices/${post.id}`} className="truncate hover:text-accent">
             {post.title}
           </Link>
           <span className="shrink-0 text-muted">{formatDate(post.createdAt)}</span>
